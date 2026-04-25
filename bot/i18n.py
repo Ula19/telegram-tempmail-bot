@@ -443,9 +443,9 @@ TRANSLATIONS = {
         "en": f"{E['folder']} <b>Inbox ({{count}}):</b>",
     },
     "tempmail.check_too_fast": {
-        "ru": "⏰ Полегче — раз в 10 секунд, не чаще.",
-        "uz": "⏰ Sekinroq — har 10 soniyada bir marta.",
-        "en": "⏰ Slow down — once every 10 seconds.",
+        "ru": "⏰ Полегче — раз в 5 секунд, не чаще.",
+        "uz": "⏰ Sekinroq — har 5 soniyada bir marta.",
+        "en": "⏰ Slow down — once every 5 seconds.",
     },
     "tempmail.account_expired": {
         "ru": (

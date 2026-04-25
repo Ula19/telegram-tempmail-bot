@@ -273,7 +273,7 @@ def get_tempmail_message_view_kb(
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text=t("btn.back_to_list", lang),
-            callback_data=f"tempmail:check:{acc_pk}",
+            callback_data=f"tempmail:inbox:{acc_pk}",
             style="success",
             icon_custom_emoji_id=E_ID["back"],
         )],

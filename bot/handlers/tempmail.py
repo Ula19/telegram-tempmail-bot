@@ -29,6 +29,7 @@ from bot.database.models import TempMailAccount
 from bot.i18n import t
 from bot.keyboards.inline import (
     get_back_keyboard,
+    get_start_keyboard,
     get_tempmail_account_menu_kb,
     get_tempmail_accounts_list_kb,
     get_tempmail_confirm_delete_kb,
@@ -50,7 +51,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 MAX_ACCOUNTS_PER_USER = 5
-CHECK_COOLDOWN_SECONDS = 10
+CHECK_COOLDOWN_SECONDS = 5
 
 
 async def _safe_edit(message: Message, text: str, **kwargs: Any) -> None:
@@ -181,6 +182,10 @@ async def create_new_account(callback: CallbackQuery, state: FSMContext) -> None
     """Создание нового ящика"""
     await state.clear()
     user_id = callback.from_user.id
+    logger.info(
+        "create_new_account triggered: user_id=%s callback_data=%r message_id=%s",
+        user_id, callback.data, callback.message.message_id if callback.message else None,
+    )
     router = _get_router()
 
     # Защита от двойного клика / параллельного создания
@@ -337,9 +342,15 @@ async def show_account_menu(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data.startswith("tempmail:check:"))
+@router.callback_query(F.data.startswith("tempmail:inbox:"))
 async def check_inbox(callback: CallbackQuery) -> None:
-    """Проверить входящие для ящика"""
+    """Проверить входящие для ящика.
+
+    `tempmail:check:N` — нажатие «Проверить почту», с cooldown 10 сек.
+    `tempmail:inbox:N` — возврат «Назад к списку» из письма, без cooldown.
+    """
     user_id = callback.from_user.id
+    skip_cooldown = callback.data.startswith("tempmail:inbox:")
     try:
         acc_pk = int(callback.data.rsplit(":", 1)[-1])
     except ValueError:
@@ -357,7 +368,7 @@ async def check_inbox(callback: CallbackQuery) -> None:
             return
 
         # Анти-спам: per-account cooldown на основе last_checked_at в БД
-        if acc.last_checked_at is not None:
+        if not skip_cooldown and acc.last_checked_at is not None:
             last = acc.last_checked_at
             if last.tzinfo is None:
                 last = last.replace(tzinfo=timezone.utc)
@@ -562,6 +573,10 @@ async def ask_delete(callback: CallbackQuery, state: FSMContext) -> None:
 async def do_delete(callback: CallbackQuery, state: FSMContext) -> None:
     """Подтверждённое удаление"""
     await state.clear()
+    logger.info(
+        "do_delete triggered: user_id=%s callback_data=%r",
+        callback.from_user.id, callback.data,
+    )
     try:
         acc_pk = int(callback.data.rsplit(":", 1)[-1])
     except ValueError:
@@ -592,10 +607,14 @@ async def do_delete(callback: CallbackQuery, state: FSMContext) -> None:
     async with async_session() as session:
         await delete_tempmail_account(session, acc_pk)
         lang = await get_user_language(session, user_id)
+        cnt = await count_user_accounts(session, user_id)
 
-    await callback.answer()
-    await _safe_edit(callback.message, 
-        t("tempmail.deleted", lang),
-        reply_markup=get_back_keyboard(lang),
+    await callback.answer(t("tempmail.deleted", lang), show_alert=False)
+    welcome = t("start.welcome", lang, name=callback.from_user.first_name)
+    await _safe_edit(callback.message,
+        welcome,
+        reply_markup=get_start_keyboard(
+            user_id=user_id, lang=lang, accounts_count=cnt,
+        ),
         parse_mode="HTML",
     )
