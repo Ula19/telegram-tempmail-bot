@@ -1,0 +1,11 @@
+# Основные зависимости
+aiogram==3.26.0
+SQLAlchemy==2.0.38
+asyncpg==0.30.0
+pydantic-settings==2.8.1
+
+# HTTP-клиент для mail.tm API
+aiohttp==3.11.18
+
+# Ускорение asyncio (не работает на Windows!)
+uvloop==0.22.1
