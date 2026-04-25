@@ -1,12 +1,15 @@
 # bot_4_tempmail
 
-Telegram-бот для создания временной одноразовой почты через [mail.tm](https://mail.tm) API.
+Telegram-бот для создания временной одноразовой почты.
+Основной провайдер — [mail.tm](https://mail.tm), fallback —
+[guerrillamail](https://www.guerrillamail.com). Каждый запрос проходит цепочку
+с нуля: если mail.tm работает — используется он, иначе guerrillamail.
 
 ## Стек
 
 - Python 3.12, aiogram 3.26
 - PostgreSQL + SQLAlchemy (asyncpg)
-- aiohttp (HTTP-клиент для mail.tm)
+- aiohttp (HTTP-клиент для провайдеров)
 - Docker + docker-compose
 
 ## Быстрый старт
@@ -29,7 +32,9 @@ bot/
 ├── handlers/        — хэндлеры команд
 ├── middlewares/     — подписка, rate limit
 ├── keyboards/       — inline-клавиатуры
-├── services/        — бизнес-логика (mailtm.py)
+├── services/
+│   ├── mailtm.py    — низкоуровневый клиент mail.tm
+│   └── providers/   — единый интерфейс + цепочка mail.tm → guerrillamail
 └── utils/           — вспомогательные утилиты
 ```
 
